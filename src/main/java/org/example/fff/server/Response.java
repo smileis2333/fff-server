@@ -8,7 +8,8 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Locale;
 
-public class Response implements HttpServletResponse {
+public class Response implements HttpServletResponse{
+
     @Override
     public void addCookie(Cookie cookie) {
 

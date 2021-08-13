@@ -11,6 +11,10 @@ public abstract class AbstractConnector extends LifeCycle.AbstractLifeCycle {
         this.port = port;
     }
 
+    public void setServer(Server server) {
+        this.server = server;
+    }
+
     @Override
     public void doStart() {
         getExecutor().execute(new Acceptor());

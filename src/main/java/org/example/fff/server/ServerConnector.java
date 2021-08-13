@@ -20,22 +20,13 @@ public class ServerConnector extends AbstractConnector {
         ServerSocket serverSocket = new ServerSocket(getPort());
         Socket income = null;
         while ((income = serverSocket.accept()) != null) {
-            Socket finalIncome = income;
+            Request request = ConvertUtil.toRequest(income);
+            Response response = ConvertUtil.toResponse(income);
             getServer().getThreadPoolExecutor().execute(() -> {
-
-                getServer().getHandler().handler(ConvertUtil.toRequest(finalIncome), ConvertUtil.toResponse(finalIncome));
+                getServer().getHandler().handler(request, response);
             });
 
         }
     }
 }
 
-class ConvertUtil {
-    public static Request toRequest(Socket income) {
-        return new Request();
-    }
-
-    public static Response toResponse(Socket income) {
-        return new Response();
-    }
-}

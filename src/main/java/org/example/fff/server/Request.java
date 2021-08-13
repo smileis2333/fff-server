@@ -11,7 +11,8 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Map;
 
-public class Request implements HttpServletRequest {
+public class Request implements HttpServletRequest{
+
     @Override
     public String getAuthType() {
         return null;
