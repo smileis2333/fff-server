@@ -9,6 +9,6 @@ class SimpleHandler implements Handler{
 
     @Override
     public void handler(Request request, Response response) {
-        System.out.println(111);
+        System.out.println();
     }
 }
