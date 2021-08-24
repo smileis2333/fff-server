@@ -3,12 +3,33 @@ package org.example.fff.server;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.Collection;
 import java.util.Locale;
 
 public class Response implements HttpServletResponse{
+    private Socket outcome;
+    private String protocol;
+
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public Socket getOutcome() {
+        return outcome;
+    }
+
+    public void setOutcome(Socket outcome) {
+        this.outcome = outcome;
+    }
 
     @Override
     public void addCookie(Cookie cookie) {
@@ -42,12 +63,21 @@ public class Response implements HttpServletResponse{
 
     @Override
     public void sendError(int sc, String msg) throws IOException {
-
+//        String firstLine = String.format("%s %s %s",protocol,sc,msg!=null?msg:HttpStatus.getMessage(sc));
+        String firstLine = "HTTP/1.1 404 Not Found\n" +
+                "Cache-Control: must-revalidate,no-cache,no-store\n" +
+                "Content-Type: application/json\n" +
+                "Transfer-Encoding: chunked\n" +
+                "Connection: keep-alive\n" +
+                "\n";
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outcome.getOutputStream()));
+        writer.write(firstLine);
+        writer.flush();
     }
 
     @Override
     public void sendError(int sc) throws IOException {
-
+        sendError(sc,null);
     }
 
     @Override

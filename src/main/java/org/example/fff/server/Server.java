@@ -1,5 +1,7 @@
 package org.example.fff.server;
 
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServlet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -10,7 +12,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class Server extends LifeCycle.AbstractLifeCycle {
     private AbstractConnector[] connectors;
     private Executor threadPoolExecutor = Executors.newFixedThreadPool(5);
-    private Handler handler = new SimpleHandler();
+    private SimpleHandler handler = new SimpleHandler();
 
     public void setConnectors(AbstractConnector[] connectors) {
         this.connectors = connectors;
@@ -45,5 +47,10 @@ public class Server extends LifeCycle.AbstractLifeCycle {
 
     public Handler getHandler() {
         return handler;
+    }
+
+    public void addServlet(String path, HttpServlet servlet) {
+        handler.addServlet(servlet);
+        handler.addMapping(path, servlet.getServletName());
     }
 }

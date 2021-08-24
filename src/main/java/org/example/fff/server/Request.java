@@ -7,15 +7,36 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.security.Principal;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class Request implements HttpServletRequest {
     private Socket income;
+    private String servletPath;
+    private String method;
+    private String protocol;
+    private Map<String, List<String>> headerFields = new HashMap<>();
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    public void setServletPath(String servletPath) {
+        this.servletPath = servletPath;
+    }
 
     public Request() {
+    }
+
+    public Socket getIncome() {
+        return income;
+    }
+
+    public void setIncome(Socket income) {
+        this.income = income;
     }
 
     @Override
@@ -35,17 +56,25 @@ public class Request implements HttpServletRequest {
 
     @Override
     public String getHeader(String name) {
-        return null;
+        return getHeaders(name).nextElement();
+    }
+
+    public void setHeader(String name, String value) {
+        setHeader(name, List.of(value));
+    }
+
+    public void setHeader(String name, List<String> value) {
+        headerFields.put(name, value);
     }
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        return null;
+        return Collections.enumeration(headerFields.getOrDefault(name,Collections.emptyList()));
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        return null;
+        return Collections.enumeration(headerFields.keySet());
     }
 
     @Override
@@ -55,7 +84,7 @@ public class Request implements HttpServletRequest {
 
     @Override
     public String getMethod() {
-        return null;
+        return method;
     }
 
     @Override
@@ -110,7 +139,7 @@ public class Request implements HttpServletRequest {
 
     @Override
     public String getServletPath() {
-        return null;
+        return servletPath;
     }
 
     @Override
@@ -240,7 +269,7 @@ public class Request implements HttpServletRequest {
 
     @Override
     public String getProtocol() {
-        return null;
+        return protocol;
     }
 
     @Override
@@ -265,12 +294,13 @@ public class Request implements HttpServletRequest {
 
     @Override
     public String getRemoteAddr() {
-        return null;
+        return income.getRemoteSocketAddress().toString();
     }
 
     @Override
     public String getRemoteHost() {
-        return null;
+        //todo resolve hostname
+        return income.getRemoteSocketAddress().toString();
     }
 
     @Override
