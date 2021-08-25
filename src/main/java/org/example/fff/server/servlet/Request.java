@@ -15,6 +15,7 @@ public class Request implements HttpServletRequest {
     private String method;
     private String protocol;
     private Map<String, List<String>> headerFields = new HashMap<>();
+    private Session session;
 
     public void setProtocol(String protocol) {
         this.protocol = protocol;
@@ -59,8 +60,18 @@ public class Request implements HttpServletRequest {
         return getHeaders(name).nextElement();
     }
 
+    private Cookie[] cookies;
+
     public void setHeader(String name, String value) {
         setHeader(name, List.of(value));
+        if ("Cookie".equals(name)) {
+            String[] cstr = value.split("; ");
+            cookies = new Cookie[cstr.length];
+            for (int i = 0; i < cstr.length; i++) {
+                String[] nv = cstr[i].split("=");
+                cookies[i] = new Cookie(nv[0], nv[1]);
+            }
+        }
     }
 
     public void setHeader(String name, List<String> value) {
@@ -69,7 +80,7 @@ public class Request implements HttpServletRequest {
 
     @Override
     public Enumeration<String> getHeaders(String name) {
-        return Collections.enumeration(headerFields.getOrDefault(name,Collections.emptyList()));
+        return Collections.enumeration(headerFields.getOrDefault(name, Collections.emptyList()));
     }
 
     @Override
@@ -149,7 +160,11 @@ public class Request implements HttpServletRequest {
 
     @Override
     public HttpSession getSession() {
-        return null;
+        return session;
+    }
+
+    public void setSession(Session session) {
+        this.session = session;
     }
 
     @Override

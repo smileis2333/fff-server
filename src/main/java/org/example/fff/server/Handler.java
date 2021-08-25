@@ -15,10 +15,16 @@ import java.util.Map;
 
 public interface Handler {
     void handler(Request request, Response response);
+
+    Server getServer();
+
+    void setServer(Server server);
+
 }
 
 
 class SimpleHandler implements Handler {
+    private Server server;
 
     private Map<String, HttpServlet> servletMap = new HashMap<>();
     private Map<String, String> servletMapping = new HashMap<>();
@@ -38,7 +44,7 @@ class SimpleHandler implements Handler {
         try {
             servlet.service(request, response);
             ResponseHeaderWriter headerWriter = response.getHeaderWriter();
-            if (!headerWriter.isCommit()){
+            if (!headerWriter.isCommit()) {
                 headerWriter.printHeader();
             }
             PrintWriter writer = response.getWriter();
@@ -50,6 +56,17 @@ class SimpleHandler implements Handler {
             System.out.println("servlet处理异常");
         }
     }
+
+    @Override
+    public Server getServer() {
+        return server;
+    }
+
+    @Override
+    public void setServer(Server server) {
+        this.server = server;
+    }
+
 
     public void addServlet(HttpServlet servlet) {
         String servletName = servlet.getServletName();

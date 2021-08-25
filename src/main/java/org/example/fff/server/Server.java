@@ -1,6 +1,7 @@
 package org.example.fff.server;
 
-import javax.servlet.Servlet;
+import org.example.fff.server.util.SessionRegistry;
+
 import javax.servlet.http.HttpServlet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -13,6 +14,7 @@ public class Server extends LifeCycle.AbstractLifeCycle {
     private AbstractConnector[] connectors;
     private Executor threadPoolExecutor = Executors.newFixedThreadPool(5);
     private SimpleHandler handler = new SimpleHandler();
+    private SessionRegistry sessionRegistry = new SessionRegistry();
 
     public void setConnectors(AbstractConnector[] connectors) {
         this.connectors = connectors;
@@ -52,5 +54,9 @@ public class Server extends LifeCycle.AbstractLifeCycle {
     public void addServlet(String path, HttpServlet servlet) {
         handler.addServlet(servlet);
         handler.addMapping(path, servlet.getServletName());
+    }
+
+    public SessionRegistry getSessionRegistry() {
+        return sessionRegistry;
     }
 }
