@@ -1,5 +1,8 @@
 package org.example.fff.server;
 
+import org.example.fff.server.servlet.Request;
+import org.example.fff.server.servlet.Response;
+
 import java.io.*;
 import java.net.Socket;
 

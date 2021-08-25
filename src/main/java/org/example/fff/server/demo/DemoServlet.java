@@ -10,6 +10,7 @@ import java.io.IOException;
 public class DemoServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        System.out.println("测试servlet");
+        resp.getWriter().println("1111");
+        System.out.println("111");
     }
 }

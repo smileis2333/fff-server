@@ -1,11 +1,15 @@
 package org.example.fff.server;
 
-import javax.servlet.Servlet;
+import org.example.fff.server.servlet.Request;
+import org.example.fff.server.servlet.Response;
+import org.example.fff.server.util.ResponseHeaderWriter;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +27,7 @@ class SimpleHandler implements Handler {
         @Override
         protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
             resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            resp.getWriter().println("找不到哇");
         }
     };
 
@@ -32,6 +37,12 @@ class SimpleHandler implements Handler {
         servlet = servlet != null ? servlet : notFoundServlet;
         try {
             servlet.service(request, response);
+            ResponseHeaderWriter headerWriter = response.getHeaderWriter();
+            if (!headerWriter.isCommit()){
+                headerWriter.printHeader();
+            }
+            PrintWriter writer = response.getWriter();
+            writer.flush();
             request.getIncome().close();
         } catch (IOException e) {
             e.printStackTrace();

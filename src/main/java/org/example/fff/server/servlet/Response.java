@@ -1,19 +1,32 @@
-package org.example.fff.server;
+package org.example.fff.server.servlet;
+
+import org.example.fff.server.util.ResponseHeaderWriter;
+import org.example.fff.server.util.ResponseWriter;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
-import java.util.Collection;
-import java.util.Locale;
+import java.util.*;
+import java.util.stream.Collectors;
 
-public class Response implements HttpServletResponse{
+public class Response implements HttpServletResponse {
     private Socket outcome;
     private String protocol;
+    private int status = HttpStatus.OK;
+    private String msg = "OK";
+    private Map<String, List<String>> headers = new HashMap<>();
+    private ResponseWriter writer;
+    private ResponseHeaderWriter headerWriter;
+
+    public ResponseHeaderWriter getHeaderWriter() {
+        return headerWriter;
+    }
+
+    public void setHeaderWriter(ResponseHeaderWriter headerWriter) {
+        this.headerWriter = headerWriter;
+    }
 
     public String getProtocol() {
         return protocol;
@@ -29,6 +42,12 @@ public class Response implements HttpServletResponse{
 
     public void setOutcome(Socket outcome) {
         this.outcome = outcome;
+        try {
+            this.writer = new ResponseWriter(outcome.getOutputStream(), this);
+            this.headerWriter = new ResponseHeaderWriter(outcome.getOutputStream(),this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -63,21 +82,16 @@ public class Response implements HttpServletResponse{
 
     @Override
     public void sendError(int sc, String msg) throws IOException {
-//        String firstLine = String.format("%s %s %s",protocol,sc,msg!=null?msg:HttpStatus.getMessage(sc));
-        String firstLine = "HTTP/1.1 404 Not Found\n" +
-                "Cache-Control: must-revalidate,no-cache,no-store\n" +
-                "Content-Type: application/json\n" +
-                "Transfer-Encoding: chunked\n" +
-                "Connection: keep-alive\n" +
-                "\n";
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outcome.getOutputStream()));
-        writer.write(firstLine);
-        writer.flush();
+        this.status = sc;
+        this.msg = msg != null ? msg : HttpStatus.getMessage(sc);
+        ResponseMeta metainfo = newMetaInfo();
+        headerWriter.println(metainfo);
+        headerWriter.flush();
     }
 
     @Override
     public void sendError(int sc) throws IOException {
-        sendError(sc,null);
+        sendError(sc, null);
     }
 
     @Override
@@ -117,7 +131,8 @@ public class Response implements HttpServletResponse{
 
     @Override
     public void setStatus(int sc) {
-
+        // todo check valid
+        status = sc;
     }
 
     @Override
@@ -162,7 +177,7 @@ public class Response implements HttpServletResponse{
 
     @Override
     public PrintWriter getWriter() throws IOException {
-        return null;
+        return writer;
     }
 
     @Override
@@ -224,4 +239,37 @@ public class Response implements HttpServletResponse{
     public Locale getLocale() {
         return null;
     }
+
+    public ResponseMeta newMetaInfo() {
+        return newMetaInfo(protocol, status, msg, headers);
+    }
+
+    private ResponseMeta newMetaInfo(String protocol, int status, String msg, Map<String, List<String>> headers) {
+        return new ResponseMeta(protocol, status, msg, headers);
+    }
+
+    public static class ResponseMeta {
+        private int status;
+        private Map<String, List<String>> headers = new HashMap<>();
+        private String message;
+        private String protocol;
+
+        public ResponseMeta(String protocol, int status, String message, Map<String, List<String>> headers) {
+            this.status = status;
+            this.headers = headers;
+            this.message = message;
+            this.protocol = protocol;
+        }
+
+        @Override
+        public String toString() {
+            String firstLine = String.format("%s %s %s\n", protocol, status, message);
+            Set<Map.Entry<String, List<String>>> entries = headers.entrySet();
+
+            String headerLines = headers.entrySet().stream().map(entry -> String.format("%s %s", entry.getKey(), entry.getValue())).collect(Collectors.joining("\n"));
+
+            return firstLine + headerLines + "\n";
+        }
+    }
 }
+

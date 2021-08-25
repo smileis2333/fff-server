@@ -1,4 +1,4 @@
-package org.example.fff.server;
+package org.example.fff.server.servlet;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
