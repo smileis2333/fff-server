@@ -14,30 +14,7 @@ public class Main {
         server.setConnectors(new AbstractConnector[]{connector});
 
         DemoServlet servlet = new DemoServlet();
-        servlet.init(new ServletConfig() {
-            @Override
-            public String getServletName() {
-                return "test";
-            }
-
-            @Override
-            public ServletContext getServletContext() {
-                return null;
-            }
-
-            @Override
-            public String getInitParameter(String name) {
-                return null;
-            }
-
-            @Override
-            public Enumeration<String> getInitParameterNames() {
-                return null;
-            }
-        });
-
-
-        server.addServlet("/test", servlet);
+        server.setScanPackages(new String[]{"org.example.fff.server.demo.DemoServlet"});
         server.start();
     }
 }

@@ -15,9 +15,21 @@ public class Server extends LifeCycle.AbstractLifeCycle {
     private Executor threadPoolExecutor = Executors.newFixedThreadPool(5);
     private SimpleHandler handler = new SimpleHandler();
     private SessionRegistry sessionRegistry = new SessionRegistry();
+    private boolean openSession;
+    private String sessionIdName = "sessionId";
+    private String[] scanPackages;
 
     public void setConnectors(AbstractConnector[] connectors) {
         this.connectors = connectors;
+    }
+
+
+    public String[] getScanPackages() {
+        return scanPackages;
+    }
+
+    public void setScanPackages(String[] scanPackages) {
+        this.scanPackages = scanPackages;
     }
 
     @Override
@@ -58,5 +70,21 @@ public class Server extends LifeCycle.AbstractLifeCycle {
 
     public SessionRegistry getSessionRegistry() {
         return sessionRegistry;
+    }
+
+    public boolean openSession() {
+        return openSession;
+    }
+
+    public void setOpenSession(boolean openSession) {
+        this.openSession = openSession;
+    }
+
+    public String getSessionIdName() {
+        return sessionIdName;
+    }
+
+    public void setSessionIdName(String sessionIdName) {
+        this.sessionIdName = sessionIdName;
     }
 }

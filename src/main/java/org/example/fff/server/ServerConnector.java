@@ -6,6 +6,7 @@ import org.example.fff.server.servlet.Session;
 import org.example.fff.server.util.ConvertUtil;
 import org.example.fff.server.util.SessionRegistry;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -29,12 +30,12 @@ public class ServerConnector extends AbstractConnector {
             request.setSessionRegistry(sessionRegistry);
             Cookie[] cookies = request.getCookies();
 
-            boolean openSession = true;
+            boolean openSession = getServer().openSession();
 
             if (openSession) {
                 String sessionId = null;
                 for (Cookie cookie : cookies) {
-                    if ("sessionId".equals(cookie.getName())) {
+                    if (getServer().getSessionIdName().equals(cookie.getName())) {
                         sessionId = cookie.getValue();
                         request.setSessionId(sessionId);
                         break;
@@ -50,7 +51,13 @@ public class ServerConnector extends AbstractConnector {
             Response response = ConvertUtil.toResponse(income);
             request.setResponse(response);
             getServer().getThreadPoolExecutor().execute(() -> {
-                getServer().getHandler().handler(request, response);
+                try {
+                    getServer().getHandler().handler(request, response);
+                } catch (ServletException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             });
 
         }

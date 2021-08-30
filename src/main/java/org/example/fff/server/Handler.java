@@ -2,19 +2,22 @@ package org.example.fff.server;
 
 import org.example.fff.server.servlet.Request;
 import org.example.fff.server.servlet.Response;
+import org.example.fff.server.servlet.filter.Chain;
+import org.example.fff.server.servlet.filter.FilterMapping;
 import org.example.fff.server.util.ResponseHeaderWriter;
 
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public interface Handler {
-    void handler(Request request, Response response);
+    void handler(Request request, Response response) throws ServletException, IOException;
 
     Server getServer();
 
@@ -28,6 +31,8 @@ class SimpleHandler implements Handler {
 
     private Map<String, HttpServlet> servletMap = new HashMap<>();
     private Map<String, String> servletMapping = new HashMap<>();
+    private Map<String, Filter> filterMap = new HashMap<>();
+    private List<FilterMapping> filterMappings = new ArrayList<>();
 
     private HttpServlet notFoundServlet = new HttpServlet() {
         @Override
@@ -38,24 +43,31 @@ class SimpleHandler implements Handler {
     };
 
     @Override
-    public void handler(Request request, Response response) {
+    public void handler(Request request, Response response) throws ServletException, IOException {
         HttpServlet servlet = getServletFromPath(request.getServletPath());
         servlet = servlet != null ? servlet : notFoundServlet;
-        try {
-            servlet.service(request, response);
-            request.refreshSession();
-            ResponseHeaderWriter headerWriter = response.getHeaderWriter();
-            if (!headerWriter.isCommit()) {
-                headerWriter.printHeader();
+
+        FilterChain chain = null;
+        chain = Chain.newChainEnd(servlet);
+
+        Set<String> wrapCheck = new HashSet<>();
+
+        // wrap url pattern
+        // todo support regex
+        for (FilterMapping filterMapping : filterMappings) {
+            if (filterMapping.supportURLPattern(request.getServletPath())) {
+                chain = Chain.newChain(filterMap.get(filterMapping.getFilterName()), chain);
+                wrapCheck.add(filterMapping.getFilterName());
             }
-            PrintWriter writer = response.getWriter();
-            writer.flush();
-            request.getIncome().close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ServletException e) {
-            System.out.println("servlet处理异常");
         }
+
+        // wrap servlet name
+        for (FilterMapping filterMapping : filterMappings) {
+            if (!wrapCheck.contains(filterMapping.getFilterName()) && filterMapping.supportURLPattern(request.getServletPath())) {
+                chain = Chain.newChain(filterMap.get(filterMapping.getFilterName()), chain);
+            }
+        }
+        chain.doFilter(request,response);
     }
 
     @Override
