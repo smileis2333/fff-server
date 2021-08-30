@@ -1,5 +1,6 @@
-package org.example.fff.server;
+package org.example.fff.server.util;
 
+import org.example.fff.server.Method;
 import org.example.fff.server.servlet.Request;
 import org.example.fff.server.servlet.Response;
 

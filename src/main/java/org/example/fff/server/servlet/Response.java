@@ -16,9 +16,10 @@ public class Response implements HttpServletResponse {
     private String protocol;
     private int status = HttpStatus.OK;
     private String msg = "OK";
-    private Map<String, List<String>> headers = new HashMap<>();
+    private Map<String, String> headers = new HashMap<>();
     private ResponseWriter writer;
     private ResponseHeaderWriter headerWriter;
+    private Map<String, Cookie> cookies = new HashMap<>();
 
     public ResponseHeaderWriter getHeaderWriter() {
         return headerWriter;
@@ -44,7 +45,7 @@ public class Response implements HttpServletResponse {
         this.outcome = outcome;
         try {
             this.writer = new ResponseWriter(outcome.getOutputStream(), this);
-            this.headerWriter = new ResponseHeaderWriter(outcome.getOutputStream(),this);
+            this.headerWriter = new ResponseHeaderWriter(outcome.getOutputStream(), this);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -52,7 +53,7 @@ public class Response implements HttpServletResponse {
 
     @Override
     public void addCookie(Cookie cookie) {
-
+        cookies.put(cookie.getName(), cookie);
     }
 
     @Override
@@ -241,20 +242,25 @@ public class Response implements HttpServletResponse {
     }
 
     public ResponseMeta newMetaInfo() {
-        return newMetaInfo(protocol, status, msg, headers);
+        HashMap<String, String> outputHeaders = new HashMap<>(headers);
+        cookies.forEach((k, v) -> {
+            //todo cookie属性
+            outputHeaders.put("Set-Cookie", String.format("%s=%s", k, v.getValue()));
+        });
+        return newMetaInfo(protocol, status, msg, outputHeaders);
     }
 
-    private ResponseMeta newMetaInfo(String protocol, int status, String msg, Map<String, List<String>> headers) {
+    private ResponseMeta newMetaInfo(String protocol, int status, String msg, Map<String, String> headers) {
         return new ResponseMeta(protocol, status, msg, headers);
     }
 
     public static class ResponseMeta {
         private int status;
-        private Map<String, List<String>> headers = new HashMap<>();
+        private Map<String, String> headers = new HashMap<>();
         private String message;
         private String protocol;
 
-        public ResponseMeta(String protocol, int status, String message, Map<String, List<String>> headers) {
+        public ResponseMeta(String protocol, int status, String message, Map<String, String> headers) {
             this.status = status;
             this.headers = headers;
             this.message = message;
@@ -264,9 +270,9 @@ public class Response implements HttpServletResponse {
         @Override
         public String toString() {
             String firstLine = String.format("%s %s %s\n", protocol, status, message);
-            Set<Map.Entry<String, List<String>>> entries = headers.entrySet();
+            Set<Map.Entry<String, String>> entries = headers.entrySet();
 
-            String headerLines = headers.entrySet().stream().map(entry -> String.format("%s %s", entry.getKey(), entry.getValue())).collect(Collectors.joining("\n"));
+            String headerLines = headers.entrySet().stream().map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue())).collect(Collectors.joining("\n"));
 
             return firstLine + headerLines + "\n";
         }

@@ -1,5 +1,7 @@
 package org.example.fff.server.servlet;
 
+import org.example.fff.server.util.SessionRegistry;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.BufferedReader;
@@ -7,7 +9,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Request implements HttpServletRequest {
     private Socket income;
@@ -16,6 +20,21 @@ public class Request implements HttpServletRequest {
     private String protocol;
     private Map<String, List<String>> headerFields = new HashMap<>();
     private Session session;
+    private SessionRegistry sessionRegistry;
+    private String sessionId;
+    private Response response;
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public void setResponse(Response response) {
+        this.response = response;
+    }
+
+    public void setSessionRegistry(SessionRegistry sessionRegistry) {
+        this.sessionRegistry = sessionRegistry;
+    }
 
     public void setProtocol(String protocol) {
         this.protocol = protocol;
@@ -47,7 +66,14 @@ public class Request implements HttpServletRequest {
 
     @Override
     public Cookie[] getCookies() {
-        return new Cookie[0];
+        List<String> cstr = headerFields.get("Cookie");
+        if (cstr != null && !cstr.isEmpty()) {
+            return Arrays.stream(cstr.get(0).split("; ")).map(e -> {
+                String[] split = e.split("=");
+                return new Cookie(split[0], split[1]);
+            }).collect(Collectors.toList()).toArray(new Cookie[]{});
+        }
+        return new Cookie[]{};
     }
 
     @Override
@@ -155,7 +181,23 @@ public class Request implements HttpServletRequest {
 
     @Override
     public HttpSession getSession(boolean create) {
-        return null;
+        Session session = null;
+        if (sessionId != null) {
+            session = sessionRegistry.getSession(sessionId);
+        }
+
+        if (session != null) {
+            return session;
+        }
+
+        if (create) {
+            session = Session.newSession(sessionRegistry);
+            this.sessionId = session.getId();
+            response.addCookie(new Cookie("sessionId", session.getId()));
+        }
+
+        this.session = session;
+        return session;
     }
 
     @Override
@@ -406,5 +448,9 @@ public class Request implements HttpServletRequest {
     @Override
     public DispatcherType getDispatcherType() {
         return null;
+    }
+
+    public void refreshSession() {
+       session.setLastAccessTime(LocalDateTime.now());
     }
 }

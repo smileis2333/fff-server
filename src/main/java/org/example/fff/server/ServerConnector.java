@@ -3,6 +3,7 @@ package org.example.fff.server;
 import org.example.fff.server.servlet.Request;
 import org.example.fff.server.servlet.Response;
 import org.example.fff.server.servlet.Session;
+import org.example.fff.server.util.ConvertUtil;
 import org.example.fff.server.util.SessionRegistry;
 
 import javax.servlet.http.Cookie;
@@ -25,6 +26,7 @@ public class ServerConnector extends AbstractConnector {
         while ((income = serverSocket.accept()) != null) {
             SessionRegistry sessionRegistry = getServer().getSessionRegistry();
             Request request = ConvertUtil.toRequest(income);
+            request.setSessionRegistry(sessionRegistry);
             Cookie[] cookies = request.getCookies();
 
             boolean openSession = true;
@@ -34,6 +36,7 @@ public class ServerConnector extends AbstractConnector {
                 for (Cookie cookie : cookies) {
                     if ("sessionId".equals(cookie.getName())) {
                         sessionId = cookie.getValue();
+                        request.setSessionId(sessionId);
                         break;
                     }
                 }
@@ -45,6 +48,7 @@ public class ServerConnector extends AbstractConnector {
 
 
             Response response = ConvertUtil.toResponse(income);
+            request.setResponse(response);
             getServer().getThreadPoolExecutor().execute(() -> {
                 getServer().getHandler().handler(request, response);
             });

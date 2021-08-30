@@ -43,6 +43,7 @@ class SimpleHandler implements Handler {
         servlet = servlet != null ? servlet : notFoundServlet;
         try {
             servlet.service(request, response);
+            request.refreshSession();
             ResponseHeaderWriter headerWriter = response.getHeaderWriter();
             if (!headerWriter.isCommit()) {
                 headerWriter.printHeader();
