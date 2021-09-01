@@ -8,6 +8,7 @@ import org.example.fff.server.servlet.filter.FilterMapping;
 import org.example.fff.server.util.FilterMappingType;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.annotation.WebServlet;
@@ -67,7 +68,7 @@ class SimpleHandler implements Handler {
 
         // wrap servlet name
         for (FilterMapping filterMapping : filterMappings) {
-            if (!wrapCheck.contains(filterMapping.getFilterName()) && filterMapping.supportURLPattern(request.getServletPath())) {
+            if (!wrapCheck.contains(filterMapping.getFilterName()) && filterMapping.supportServletName(servlet.getServletName())) {
                 chain = Chain.newChain(filterMap.get(filterMapping.getFilterName()), chain);
             }
         }
@@ -85,15 +86,18 @@ class SimpleHandler implements Handler {
     }
 
 
-    public void addServlet(Class<? extends HttpServlet> clazz) {
-        for (Annotation annotation : clazz.getClass().getAnnotations()) {
+    public void addServlet(Class clazz) {
+        for (Annotation annotation : clazz.getAnnotations()) {
             if (annotation.annotationType() == WebServlet.class) {
                 try {
-                    HttpServlet servlet = clazz.getConstructor().newInstance();
+                    HttpServlet servlet = (HttpServlet)clazz.getConstructor().newInstance();
                     String servletName = (String) WebServlet.class.getMethod("name").invoke(annotation);
-                    String[] values = (String[]) WebServlet.class.getMethod("value").invoke(annotation);
+                    String[] urlPatterns = (String[]) WebServlet.class.getMethod("urlPatterns").invoke(annotation);
+
+                    SConfig sConfig = new SConfig(servletName);
+                    servlet.init(sConfig);
                     addServlet(servletName, servlet);
-                    for (String value : values) {
+                    for (String value : urlPatterns) {
                         addServletMapping(value, servletName);
                     }
 
@@ -105,6 +109,8 @@ class SimpleHandler implements Handler {
                     e.printStackTrace();
                 } catch (InstantiationException e) {
                     e.printStackTrace();
+                } catch (ServletException e) {
+                    System.out.println("servlet init exception");
                 }
             }
         }
@@ -118,11 +124,11 @@ class SimpleHandler implements Handler {
         servletMappings.add(new ServletMapping(urlPattern, servletName));
     }
 
-    public void addFilter(Class<HttpFilter> clazz) {
-        for (Annotation annotation : clazz.getClass().getAnnotations()) {
+    public void addFilter(Class clazz) {
+        for (Annotation annotation : clazz.getAnnotations()) {
             if (annotation.annotationType() == WebFilter.class) {
                 try {
-                    HttpFilter servlet = clazz.getConstructor().newInstance();
+                    HttpFilter servlet = (HttpFilter)clazz.getConstructor().newInstance();
                     String filterName = (String) WebFilter.class.getMethod("filterName").invoke(annotation);
                     String[] values = (String[]) WebFilter.class.getMethod("urlPatterns").invoke(annotation);
                     String[] servletNames = (String[]) WebFilter.class.getMethod("servletNames").invoke(annotation);
@@ -131,7 +137,6 @@ class SimpleHandler implements Handler {
                     for (String value : values) {
                         addFilterMapping(FilterMappingType.URL_PATTERN, filterName, value);
                     }
-
 
                     for (String value : servletNames) {
                         addFilterMapping(FilterMappingType.SERVLET_NAME, filterName, value);
