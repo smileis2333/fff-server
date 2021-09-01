@@ -2,18 +2,22 @@ package org.example.fff.server;
 
 import org.example.fff.server.servlet.Request;
 import org.example.fff.server.servlet.Response;
+import org.example.fff.server.servlet.ServletMapping;
 import org.example.fff.server.servlet.filter.Chain;
 import org.example.fff.server.servlet.filter.FilterMapping;
-import org.example.fff.server.util.ResponseHeaderWriter;
+import org.example.fff.server.util.FilterMappingType;
 
-import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.WebFilter;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpFilter;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 public interface Handler {
@@ -30,8 +34,9 @@ class SimpleHandler implements Handler {
     private Server server;
 
     private Map<String, HttpServlet> servletMap = new HashMap<>();
-    private Map<String, String> servletMapping = new HashMap<>();
-    private Map<String, Filter> filterMap = new HashMap<>();
+    private Map<String, HttpFilter> filterMap = new HashMap<>();
+
+    private List<ServletMapping> servletMappings = new ArrayList<>();
     private List<FilterMapping> filterMappings = new ArrayList<>();
 
     private HttpServlet notFoundServlet = new HttpServlet() {
@@ -45,7 +50,6 @@ class SimpleHandler implements Handler {
     @Override
     public void handler(Request request, Response response) throws ServletException, IOException {
         HttpServlet servlet = getServletFromPath(request.getServletPath());
-        servlet = servlet != null ? servlet : notFoundServlet;
 
         FilterChain chain = null;
         chain = Chain.newChainEnd(servlet);
@@ -67,7 +71,7 @@ class SimpleHandler implements Handler {
                 chain = Chain.newChain(filterMap.get(filterMapping.getFilterName()), chain);
             }
         }
-        chain.doFilter(request,response);
+        chain.doFilter(request, response);
     }
 
     @Override
@@ -81,13 +85,81 @@ class SimpleHandler implements Handler {
     }
 
 
-    public void addServlet(HttpServlet servlet) {
-        String servletName = servlet.getServletName();
+    public void addServlet(Class<? extends HttpServlet> clazz) {
+        for (Annotation annotation : clazz.getClass().getAnnotations()) {
+            if (annotation.annotationType() == WebServlet.class) {
+                try {
+                    HttpServlet servlet = clazz.getConstructor().newInstance();
+                    String servletName = (String) WebServlet.class.getMethod("name").invoke(annotation);
+                    String[] values = (String[]) WebServlet.class.getMethod("value").invoke(annotation);
+                    addServlet(servletName, servlet);
+                    for (String value : values) {
+                        addServletMapping(value, servletName);
+                    }
+
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void addServlet(String servletName, HttpServlet servlet) {
         servletMap.put(servletName, servlet);
     }
 
-    public void addMapping(String path, String servletName) {
-        servletMapping.put(path, servletName);
+    private void addServletMapping(String urlPattern, String servletName) {
+        servletMappings.add(new ServletMapping(urlPattern, servletName));
+    }
+
+    public void addFilter(Class<HttpFilter> clazz) {
+        for (Annotation annotation : clazz.getClass().getAnnotations()) {
+            if (annotation.annotationType() == WebFilter.class) {
+                try {
+                    HttpFilter servlet = clazz.getConstructor().newInstance();
+                    String filterName = (String) WebFilter.class.getMethod("filterName").invoke(annotation);
+                    String[] values = (String[]) WebFilter.class.getMethod("urlPatterns").invoke(annotation);
+                    String[] servletNames = (String[]) WebFilter.class.getMethod("servletNames").invoke(annotation);
+                    addFilter(filterName, servlet);
+
+                    for (String value : values) {
+                        addFilterMapping(FilterMappingType.URL_PATTERN, filterName, value);
+                    }
+
+
+                    for (String value : servletNames) {
+                        addFilterMapping(FilterMappingType.SERVLET_NAME, filterName, value);
+                    }
+
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void addFilter(String filterName, HttpFilter filter) {
+        filterMap.put(filterName, filter);
+    }
+
+    private void addFilterMapping(FilterMappingType filterMappingType, String filterName, String target) {
+        if (filterMappingType == FilterMappingType.URL_PATTERN) {
+            filterMappings.add(FilterMapping.newUrlPatternMapping(filterMappingType, filterName, target));
+        } else if (filterMappingType == FilterMappingType.SERVLET_NAME) {
+            filterMappings.add(FilterMapping.newServletMapping(filterMappingType, filterName, target));
+        }
     }
 
     public HttpServlet getServletFromName(String servletName) {
@@ -95,6 +167,11 @@ class SimpleHandler implements Handler {
     }
 
     public HttpServlet getServletFromPath(String path) {
-        return servletMap.get(servletMapping.get(path));
+        for (ServletMapping servletMapping : servletMappings) {
+            if (servletMapping.support(path)) {
+                return servletMap.get(servletMapping.getServletName());
+            }
+        }
+        return notFoundServlet;
     }
 }

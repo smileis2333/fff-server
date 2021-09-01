@@ -14,7 +14,7 @@ public class Main {
         server.setConnectors(new AbstractConnector[]{connector});
 
         DemoServlet servlet = new DemoServlet();
-        server.setScanPackages(new String[]{"org.example.fff.server.demo.DemoServlet"});
+        server.setScanPackages(new String[]{"org.example.fff.server.demo"});
         server.start();
     }
 }

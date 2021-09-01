@@ -1,5 +1,7 @@
 package org.example.fff.server.servlet.filter;
 
+import org.example.fff.server.util.FilterMappingType;
+
 public class FilterMapping {
     private FilterMappingType filterMappingType;
 
@@ -8,6 +10,26 @@ public class FilterMapping {
     private String servletName;
 
     private String filterName;
+
+    private FilterMapping() {
+
+    }
+
+    public static FilterMapping newUrlPatternMapping(FilterMappingType filterMappingType, String filterName, String URLPattern) {
+        FilterMapping filterMapping = new FilterMapping();
+        filterMapping.URLPattern = URLPattern;
+        filterMapping.filterMappingType = filterMappingType;
+        filterMapping.filterName = filterName;
+        return filterMapping;
+    }
+
+    public static FilterMapping newServletMapping(FilterMappingType filterMappingType, String filterName, String servletName) {
+        FilterMapping filterMapping = new FilterMapping();
+        filterMapping.servletName = servletName;
+        filterMapping.filterMappingType = filterMappingType;
+        filterMapping.filterName = filterName;
+        return filterMapping;
+    }
 
     public boolean supportURLPattern(String URLPattern) {
         //todo
@@ -23,14 +45,3 @@ public class FilterMapping {
     }
 }
 
-enum FilterMappingType {
-    /**
-     * url 匹配
-     */
-    URL_PATTERN,
-
-    /**
-     * servlet name匹配
-     */
-    SERVLET_NAME,
-}
